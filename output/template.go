@@ -14,6 +14,20 @@
 
 package output
 
+var text = `Results:
+{{ range $index, $issue := .Issues }}
+[{{ $issue.File }}:{{ $issue.Line }}] - {{ $issue.What }} (Confidence: {{ $issue.Confidence}}, Severity: {{ $issue.Severity }})
+  > {{ $issue.Code }}
+
+{{ end }}
+Summary:
+   Files: {{.Stats.NumFiles}}
+   Lines: {{.Stats.NumLines}}
+   Nosec: {{.Stats.NumNosec}}
+  Issues: {{.Stats.NumFound}}
+
+`
+
 const html = `
 <!doctype html>
 <html lang="en">
@@ -400,11 +414,15 @@ const html = `
 </body>
 </html>`
 
-const checkstyle = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+const checkstyleTemplate = `
+{{/* . is a map[filename][]*Issues */}}
+<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <checkstyle version="5.0">
-{{- range $index, $issue := .Issues}}
-    <file name="{{ $issue.File }}">
+{{- range $k, $v := . }}
+    <file name="{{ $k }}">
+      {{- range $i, $issue := $v }}
       <error line="{{ $issue.Line }}" message="{{ $issue.What }} (confidence {{ $issue.Confidence}})" severity="{{ $issue.Severity }}" source="gas"></error>
+      {{- end }}
     </file>
 {{- end }}
 </checkstyle>

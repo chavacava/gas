@@ -25,29 +25,9 @@ import (
 	gas "github.com/GoASTScanner/gas/core"
 )
 
-// The output format for reported issues
-type ReportFormat int
-
-const (
-	ReportText ReportFormat = iota // Plain text format
-	ReportJSON                     // Json format
-	ReportCSV                      // CSV format
-)
-
-var text = `Results:
-{{ range $index, $issue := .Issues }}
-[{{ $issue.File }}:{{ $issue.Line }}] - {{ $issue.What }} (Confidence: {{ $issue.Confidence}}, Severity: {{ $issue.Severity }})
-  > {{ $issue.Code }}
-
-{{ end }}
-Summary:
-   Files: {{.Stats.NumFiles}}
-   Lines: {{.Stats.NumLines}}
-   Nosec: {{.Stats.NumNosec}}
-  Issues: {{.Stats.NumFound}}
-
-`
-
+// CreateReport writes analysis report to w using the given data.
+// The format of the report is set through format parameter
+// It returns an error if report creation fails
 func CreateReport(w io.Writer, format string, data *gas.Analyzer) error {
 	var err error
 	switch format {
@@ -60,7 +40,7 @@ func CreateReport(w io.Writer, format string, data *gas.Analyzer) error {
 	case "text":
 		err = reportFromPlaintextTemplate(w, text, data)
 	case "checkstyle":
-		err = reportFromPlaintextTemplate(w, checkstyle, data)
+		err = reportInCheckstyleFormat(w, data)
 	default:
 		err = reportFromPlaintextTemplate(w, text, data)
 	}
@@ -115,4 +95,28 @@ func reportFromHTMLTemplate(w io.Writer, reportTemplate string, data *gas.Analyz
 	}
 
 	return t.Execute(w, data)
+}
+
+func reportInCheckstyleFormat(w io.Writer, data *gas.Analyzer) error {
+	issues := aggregateIssues(data.Issues)
+	t, e := plainTemplate.New("gas").Parse(checkstyleTemplate)
+	if e != nil {
+		return e
+	}
+
+	return t.Execute(w, issues)
+}
+
+// aggregateIssues groups issues by file to facilitate
+// checkstyle XML report
+func aggregateIssues(issues []*gas.Issue) map[string][]*gas.Issue {
+	result := make(map[string][]*gas.Issue)
+	var last string
+	for _, is := range issues {
+		if is.File != last {
+			last = is.File
+		}
+		result[last] = append(result[last], is)
+	}
+	return result
 }
