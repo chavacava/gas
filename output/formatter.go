@@ -59,6 +59,8 @@ func CreateReport(w io.Writer, format string, data *gas.Analyzer) error {
 		err = reportFromHTMLTemplate(w, html, data)
 	case "text":
 		err = reportFromPlaintextTemplate(w, text, data)
+	case "checkstyle":
+		err = reportFromPlaintextTemplate(w, checkstyle, data)
 	default:
 		err = reportFromPlaintextTemplate(w, text, data)
 	}

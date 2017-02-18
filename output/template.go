@@ -399,3 +399,13 @@ const html = `
   </script>
 </body>
 </html>`
+
+const checkstyle = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<checkstyle version="5.0">
+{{- range $index, $issue := .Issues}}
+    <file name="{{ $issue.File }}">
+      <error line="{{ $issue.Line }}" message="{{ $issue.What }} (confidence {{ $issue.Confidence}})" severity="{{ $issue.Severity }}" source="gas"></error>
+    </file>
+{{- end }}
+</checkstyle>
+`
